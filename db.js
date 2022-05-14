@@ -8,6 +8,12 @@ const sequelize = new Sequelize('database', username, password, {
     storage: 'database.sqlite'
 });
 
+const EEWGuilds = sequelize.define('eewrooms', {
+    guild_id: {
+        type: Sequelize.STRING,
+        primaryKey: true,
+    }
+});
 
 const Rooms = sequelize.define('rooms', {
     voicechannel_id :{
@@ -46,4 +52,5 @@ module.exports = {
     sequelize,
     Rooms,
     Members,
+    EEWGuilds,
 };
