@@ -23,7 +23,7 @@ const Rooms = sequelize.define('rooms', {
         type: Sequelize.STRING,
         allowNull: false,
     }
-})
+});
 
 const Members = sequelize.define('members', {
     id: {

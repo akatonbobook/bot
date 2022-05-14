@@ -79,7 +79,6 @@ const joinRoom = async function(member, voiceChannel) {
             }
         }
     });
-    
 }
 
 /**
