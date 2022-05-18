@@ -773,6 +773,10 @@ const inv_scramble = function(scramble) {
     .join(' ');
 }
 
+const getRandom = function(n, m){
+    return num = Math.floor(Math.random() * (m + 1 - n)) + n;
+};
+
 const solve_scramble = function(scramble) {
     try {
         let cube = State.scramble2state(scramble);
@@ -789,9 +793,9 @@ const generate_scramble = function() {
     do {
         cube = new State(
             shuffle([0, 1, 2, 3, 4, 5, 6, 7]),
-            State.index_to_co(2000),
+            State.index_to_co(getRandom(0, 2186)),
             shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
-            State.index_to_eo(300)
+            State.index_to_eo(getRandom(0, 2047))
         );
     } while (!State.is_possible(cube));
     let solver = new Solver(cube);
