@@ -15,11 +15,21 @@ const joinRoom = async function(member, voiceChannel) {
     const guild = voiceChannel.guild;
     await lock.acquire('room-lock', async () => {
         var room = await Rooms.findOne({ where: { voicechannel_id: voiceChannel.id }});
-        if (!room) {
-            const role = await guild.roles.create({
+        var isRoleExist = room && (await guild.roles.fetch()).filter(ch => ch.id == room.get('role_id')).size == 1
+        var isTextChannelExist = room && (await guild.channels.fetch()).filter(ch => ch.id == room.get('textchannel_id')).size == 1
+        var role;
+        var textChannel;
+        if (isRoleExist) {
+            role = await guild.roles.fetch(room.get('role_id'));
+        } else {
+            role = await guild.roles.create({
                 name: `${voiceChannel.name} member`, 
             });
-            const textChannel = await guild.channels.create(`${voiceChannel.name}`,{
+        }
+        
+        await member.roles.add(role);
+        if (!isTextChannelExist) {
+            textChannel = await guild.channels.create(`${voiceChannel.name}専用ちゃっと`,{
                 topic: `${voiceChannel}用のテキストチャンネル`,
                 permissionOverwrites: [
                     { 
@@ -50,22 +60,7 @@ const joinRoom = async function(member, voiceChannel) {
                 parent: voiceChannel.parent,
                 position: voiceChannel.position,
             });
-            try {
-                room = await Rooms.create({
-                    voicechannel_id: voiceChannel.id,
-                    textchannel_id: textChannel.id,
-                    role_id: role.id
-                });
-            } catch (error) {
-                if (error.name === 'SequelizeUniqueConstraintError') {
-                    console.log('room already exists.');
-                } else {
-                    return;
-                }
-            }
         }
-        const role = await guild.roles.fetch(room.get('role_id'));
-        await member.roles.add(role);
         try {
             await Members.create({
                 id: member.id,
@@ -73,11 +68,83 @@ const joinRoom = async function(member, voiceChannel) {
             });
         } catch (error) {
             if (error.name === 'SequelizeUniqueConstraintError') {
-                console.log('room already exists.');
+                console.log('member already exists.');
             } else {
-                return;
+                console.error(error);
             }
         }
+        if (isRoleExist && isTextChannelExist) return;
+        try {
+            room = await Rooms.create({
+                voicechannel_id: voiceChannel.id,
+                textchannel_id: textChannel.id,
+                role_id: role.id
+            });
+        } catch (error) {
+            if (error.name === 'SequelizeUniqueConstraintError') {
+                console.log('room already exists.');
+                room = await Rooms.update({
+                    textchannel_id: textChannel.id,
+                    role_id: role.id
+                }, {
+                    where: {
+                        voicechannel_id: voiceChannel.id,
+                    }
+                });
+            } else {
+                console.error(error);
+            }
+        }
+        // if (!room) {
+        //     const role = await guild.roles.create({
+        //         name: `${voiceChannel.name} member`, 
+        //     });
+        //     const textChannel = await guild.channels.create(`${voiceChannel.name}`,{
+        //         topic: `${voiceChannel}用のテキストチャンネル`,
+        //         permissionOverwrites: [
+        //             { 
+        //                 id: guild.roles.everyone,
+        //                 deny: [
+        //                     Permissions.FLAGS.READ_MESSAGE_HISTORY,
+        //                     Permissions.FLAGS.VIEW_CHANNEL,
+        //                     Permissions.FLAGS.SEND_MESSAGES,
+        //                 ]
+        //             },
+        //             {
+        //                 id: guild.me,
+        //                 allow: [
+        //                     Permissions.FLAGS.READ_MESSAGE_HISTORY,
+        //                     Permissions.FLAGS.VIEW_CHANNEL,
+        //                     Permissions.FLAGS.SEND_MESSAGES,
+        //                 ]
+        //             },
+        //             {
+        //                 id: role,
+        //                 allow: [
+        //                     Permissions.FLAGS.READ_MESSAGE_HISTORY,
+        //                     Permissions.FLAGS.VIEW_CHANNEL,
+        //                     Permissions.FLAGS.SEND_MESSAGES,
+        //                 ]
+        //             }
+        //         ],
+        //         parent: voiceChannel.parent,
+        //         position: voiceChannel.position,
+        //     });
+        // }
+        // const role = await guild.roles.fetch(room.get('role_id'));
+        // await member.roles.add(role);
+        // try {
+        //     await Members.create({
+        //         id: member.id,
+        //         voicechannel_id: voiceChannel.id
+        //     });
+        // } catch (error) {
+        //     if (error.name === 'SequelizeUniqueConstraintError') {
+        //         console.log('room already exists.');
+        //     } else {
+        //         return;
+        //     }
+        // }
     });
 }
 
